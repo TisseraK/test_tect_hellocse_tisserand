@@ -2,12 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../domain/entities/city.dart';
 
-class CitySearchResultTile extends StatelessWidget {
-  const CitySearchResultTile({
-    super.key,
-    required this.city,
-    required this.onTap,
-  });
+/// Réutilisé pour les résultats de recherche et la liste des favoris.
+class CityListTile extends StatelessWidget {
+  const CityListTile({super.key, required this.city, required this.onTap});
 
   final City city;
   final VoidCallback onTap;

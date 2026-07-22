@@ -6,6 +6,8 @@ import '../../../domain/entities/city.dart';
 import '../../bloc/weather_detail/weather_detail_bloc.dart';
 import '../../bloc/weather_detail/weather_detail_event.dart';
 import '../../bloc/weather_detail/weather_detail_state.dart';
+import '../../cubit/favorites/favorites_cubit.dart';
+import '../../cubit/favorites/favorites_state.dart';
 import '../../widgets/activity_selector.dart';
 import '../../widgets/daily_forecast_tile.dart';
 
@@ -51,6 +53,22 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.city.name),
+        actions: [
+          BlocBuilder<FavoritesCubit, FavoritesState>(
+            builder: (context, state) {
+              final isFavorite =
+                  state is FavoritesLoaded && state.contains(widget.city);
+              return IconButton(
+                icon: Icon(isFavorite ? Icons.favorite : Icons.favorite_border),
+                tooltip: isFavorite
+                    ? 'Retirer des favoris'
+                    : 'Ajouter aux favoris',
+                onPressed: () =>
+                    context.read<FavoritesCubit>().toggleFavorite(widget.city),
+              );
+            },
+          ),
+        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(20),
           child: Padding(

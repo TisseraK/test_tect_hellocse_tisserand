@@ -7,7 +7,7 @@ import '../../../domain/entities/city.dart';
 import '../../bloc/city_search/city_search_bloc.dart';
 import '../../bloc/city_search/city_search_event.dart';
 import '../../bloc/city_search/city_search_state.dart';
-import '../../widgets/city_search_result_tile.dart';
+import '../../widgets/city_list_tile.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key, this.onCitySelected});
@@ -81,7 +81,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     separatorBuilder: (_, _) => const Divider(height: 1),
                     itemBuilder: (context, index) {
                       final city = cities[index];
-                      return CitySearchResultTile(
+                      return CityListTile(
                         city: city,
                         onTap: () => widget.onCitySelected?.call(city),
                       );

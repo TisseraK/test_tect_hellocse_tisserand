@@ -60,7 +60,7 @@ Socle obligatoire d'abord, bonus ensuite seulement si le socle est terminé et v
 
 L'injection de dépendances est faite via `get_it` (service locator), câblée au démarrage de l'application, afin que chaque couche ne dépende que d'abstractions et puisse être testée indépendamment (repositories mockés avec `mocktail`, appels réseau simulés).
 
-Arborescence (fondations, domaine, recherche de ville, prévisions météo et recommandation d'activité en place ; il reste les favoris) :
+Arborescence (socle obligatoire complet : fondations, domaine, recherche, prévisions, recommandation d'activité, favoris) :
 
 ```
 lib/
@@ -72,9 +72,9 @@ lib/
     network/      # ApiClient, seul point de contact avec http.Client
     storage/      # initialisation Hive
   data/
-    models/         # CityModel, DailyForecastModel — DTO + parsing JSON Open-Meteo
-    datasources/    # CityRemoteDataSource, WeatherRemoteDataSource — appels API isolés
-    repositories/   # CityRepositoryImpl, WeatherRepositoryImpl — mapping + traduction erreurs
+    models/         # CityModel, DailyForecastModel — DTO + parsing/sérialisation JSON
+    datasources/    # City/WeatherRemoteDataSource, FavoritesLocalDataSource — accès isolés
+    repositories/   # *RepositoryImpl — mapping + traduction erreurs
   domain/
     entities/     # City, DailyForecast, Activity, RecommendationLevel
     repositories/ # contrats CityRepository, WeatherRepository, FavoritesRepository
@@ -83,15 +83,21 @@ lib/
     bloc/
       city_search/     # CitySearchBloc (event/state), anti-rebond + restartable
       weather_detail/  # WeatherDetailBloc — prévisions + recommandations par activité
+    cubit/
+      favorites/       # FavoritesCubit — état partagé (écran Favoris + bouton favori)
     screens/
       search/          # écran de recherche (chargement/erreur/vide/résultats)
-      weather_detail/  # écran détail météo (7 jours, sélecteur d'activité, retry sur erreur)
-    widgets/         # CitySearchResultTile, DailyForecastTile, ActivitySelector, RecommendationBadge
+      weather_detail/  # écran détail météo (7 jours, sélecteur d'activité, favori, retry)
+      favorites/       # écran Favoris
+      home_shell.dart  # onglets Recherche/Favoris (NavigationBar)
+    widgets/         # CityListTile, DailyForecastTile, ActivitySelector, RecommendationBadge
     utils/           # mapping code météo WMO -> libellé/icône, formatage date FR
   main.dart       # bootstrap: charge .env, initialise Hive, câble get_it
 ```
 
 Recherche de ville : l'anti-rebond (400 ms) est géré côté UI (`Timer` sur le `TextField`) plutôt que dans le BLoC, pour garder ce dernier simple — c'est une préoccupation de saisie utilisateur, pas de logique métier. Le `CitySearchBloc` utilise le transformer `restartable()` de `bloc_concurrency` : si une recherche plus récente est déclenchée avant qu'une précédente n'ait répondu, cette dernière est abandonnée, pour éviter qu'une réponse réseau en retard n'écrase un résultat plus récent.
+
+Favoris : `City` porte l'`id` renvoyé par l'API geocoding, utilisé comme clé Hive (plus fiable que les coordonnées en virgule flottante). `FavoritesLocalDataSource` isole l'accès à la box Hive derrière une interface, comme les datasources distantes. `FavoritesCubit` — un `Cubit` plutôt qu'un `Bloc`, car il n'y a que deux opérations simples (charger, basculer), pas de flux d'événements à orchestrer — est enregistré en **singleton** dans `get_it` et fourni **au-dessus du `MaterialApp`** (donc au-dessus de son `Navigator` interne) : c'est un état partagé entre l'écran Favoris et le bouton favori de l'écran détail (poussé par-dessus via `Navigator.push`), qui vit dans une route différente. Un `BlocProvider` scopé à une seule route (comme `CitySearchBloc` ou `WeatherDetailBloc`) ne serait pas visible depuis une autre route poussée sur le même `Navigator` — d'où ce placement volontairement plus haut. `HomeShell` (`IndexedStack` + `NavigationBar`) fournit les deux onglets Recherche/Favoris demandés par le sujet, tous deux capables d'ouvrir la même fiche météo.
 
 Prévisions météo : sélectionner une ville dans les résultats de recherche pousse l'écran détail, qui déclenche le chargement des 7 prochains jours (`daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max,windspeed_10m_max&timezone=auto&forecast_days=7`). Chaque jour affiche condition météo, températures min/max, probabilité de précipitation et vent maximal ; l'état d'erreur propose un bouton « Réessayer ». Le thème clair/sombre est géré globalement (`MaterialApp.theme`/`darkTheme`).
 

@@ -2,14 +2,18 @@ import 'package:get_it/get_it.dart';
 import 'package:hive_ce_flutter/hive_ce_flutter.dart';
 
 import '../../data/datasources/city_remote_data_source.dart';
+import '../../data/datasources/favorites_local_data_source.dart';
 import '../../data/datasources/weather_remote_data_source.dart';
 import '../../data/repositories/city_repository_impl.dart';
+import '../../data/repositories/favorites_repository_impl.dart';
 import '../../data/repositories/weather_repository_impl.dart';
 import '../../domain/repositories/city_repository.dart';
+import '../../domain/repositories/favorites_repository.dart';
 import '../../domain/repositories/weather_repository.dart';
 import '../../domain/usecases/recommend_activity.dart';
 import '../../presentation/bloc/city_search/city_search_bloc.dart';
 import '../../presentation/bloc/weather_detail/weather_detail_bloc.dart';
+import '../../presentation/cubit/favorites/favorites_cubit.dart';
 import '../constants/hive_box_names.dart';
 import '../network/api_client.dart';
 
@@ -36,6 +40,11 @@ Future<void> initDependencies() async {
   sl.registerLazySingleton<WeatherRemoteDataSource>(
     () => WeatherRemoteDataSourceImpl(sl<ApiClient>()),
   );
+  sl.registerLazySingleton<FavoritesLocalDataSource>(
+    () => FavoritesLocalDataSourceImpl(
+      sl<Box<Map>>(instanceName: HiveBoxNames.favorites),
+    ),
+  );
 
   // Repositories
   sl.registerLazySingleton<CityRepository>(
@@ -44,15 +53,23 @@ Future<void> initDependencies() async {
   sl.registerLazySingleton<WeatherRepository>(
     () => WeatherRepositoryImpl(sl<WeatherRemoteDataSource>()),
   );
+  sl.registerLazySingleton<FavoritesRepository>(
+    () => FavoritesRepositoryImpl(sl<FavoritesLocalDataSource>()),
+  );
 
   // Use cases
   sl.registerLazySingleton<RecommendActivity>(() => const RecommendActivity());
 
-  // BLoC — une nouvelle instance à chaque écran (pas de singleton).
+  // BLoC/Cubit — une nouvelle instance à chaque écran, sauf FavoritesCubit :
+  // état partagé entre l'écran Favoris et le bouton favori de l'écran détail,
+  // câblé en singleton pour rester synchronisé entre les deux.
   sl.registerFactory<CitySearchBloc>(
     () => CitySearchBloc(sl<CityRepository>()),
   );
   sl.registerFactory<WeatherDetailBloc>(
     () => WeatherDetailBloc(sl<WeatherRepository>(), sl<RecommendActivity>()),
+  );
+  sl.registerLazySingleton<FavoritesCubit>(
+    () => FavoritesCubit(sl<FavoritesRepository>()),
   );
 }
