@@ -5,7 +5,9 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'core/di/injection_container.dart';
 import 'core/storage/hive_initializer.dart';
 import 'presentation/bloc/city_search/city_search_bloc.dart';
+import 'presentation/bloc/weather_detail/weather_detail_bloc.dart';
 import 'presentation/screens/search/search_screen.dart';
+import 'presentation/screens/weather_detail/weather_detail_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,12 +37,19 @@ class MeteoDeSortieApp extends StatelessWidget {
       ),
       home: BlocProvider<CitySearchBloc>(
         create: (_) => sl<CitySearchBloc>(),
-        child: SearchScreen(
-          onCitySelected: (city) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Ville sélectionnée : ${city.name}')),
-            );
-          },
+        child: Builder(
+          builder: (context) => SearchScreen(
+            onCitySelected: (city) {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => BlocProvider<WeatherDetailBloc>(
+                    create: (_) => sl<WeatherDetailBloc>(),
+                    child: WeatherDetailScreen(city: city),
+                  ),
+                ),
+              );
+            },
+          ),
         ),
       ),
     );
