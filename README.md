@@ -159,9 +159,21 @@ Rationale : la balade tolère un large éventail de conditions (activité mobile
 flutter test
 ```
 
-- Test unitaire sur les règles de recommandation météo
-- Test de la couche d'accès aux données avec appel réseau simulé
-- Widget test sur un écran clé
+Socle obligatoire couvert, plus quelques tests supplémentaires ciblés sur les points les plus
+sensibles (traduction d'erreurs, synchronisation d'état partagé) :
+
+| Fichier | Couvre | Type |
+|---|---|---|
+| `test/domain/usecases/recommend_activity_test.dart` | Règles de recommandation météo (3 activités, cas limites/bornes) | **Unitaire (obligatoire)** |
+| `test/data/datasources/city_remote_data_source_test.dart` | Parsing JSON geocoding, succès/vide/erreur serveur/erreur réseau, via `http.testing.MockClient` (aucun appel réseau réel) | **Datasource, réseau simulé (obligatoire)** |
+| `test/presentation/screens/weather_detail/weather_detail_screen_test.dart` | Écran détail météo : chargement → résultats, changement d'activité, erreur + retry, bouton favori | **Widget test (obligatoire)** |
+| `test/data/repositories/city_repository_impl_test.dart` | Traduction `ServerException`/`NetworkException` → `Failure` | Unitaire (mocktail) |
+| `test/presentation/bloc/city_search/city_search_bloc_test.dart` | Séquences d'états du `CitySearchBloc` (succès, vide, erreur, requête vide) | `bloc_test` (mocktail) |
+| `test/data/datasources/favorites_local_data_source_test.dart` | Ajout/retrait de favoris et **persistance réelle après fermeture/réouverture de Hive** | Datasource locale (Hive réel, répertoire temporaire) |
+
+Les datasources sont testées via leur point d'isolation documenté : `MockClient` pour le réseau,
+Hive pointé vers un répertoire temporaire pour le stockage local — jamais de mock du domaine ou
+de logique métier dupliquée dans les tests.
 
 ## Analyse et formatage
 
