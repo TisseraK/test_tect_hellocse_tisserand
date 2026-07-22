@@ -60,7 +60,7 @@ Socle obligatoire d'abord, bonus ensuite seulement si le socle est terminé et v
 
 L'injection de dépendances est faite via `get_it` (service locator), câblée au démarrage de l'application, afin que chaque couche ne dépende que d'abstractions et puisse être testée indépendamment (repositories mockés avec `mocktail`, appels réseau simulés).
 
-Arborescence (fondations en place, `data/`/`domain/`/`presentation/` se remplissent au fil des étapes suivantes) :
+Arborescence (fondations + domaine en place, `data/`/`presentation/` se remplissent au fil des étapes suivantes) :
 
 ```
 lib/
@@ -72,7 +72,10 @@ lib/
     network/      # ApiClient, seul point de contact avec http.Client
     storage/      # initialisation Hive
   data/           # DTO, datasources, implémentations de repositories
-  domain/         # entités, contrats de repositories, use cases
+  domain/
+    entities/     # City, DailyForecast, Activity, RecommendationLevel
+    repositories/ # contrats CityRepository, WeatherRepository, FavoritesRepository
+    usecases/     # RecommendActivity — moteur de recommandation d'activité
   presentation/   # BLoC/Cubit, écrans, widgets
   main.dart       # bootstrap: charge .env, initialise Hive, câble get_it
 ```
@@ -102,6 +105,30 @@ Open-Meteo est une API publique et gratuite, sans clé il n'y a donc aucun secre
 
 ## Règles de recommandation météo
 
+Implémentées dans `domain/usecases/recommend_activity.dart`, logique pure sans dépendance Flutter.
+
+Chaque jour est noté sur 3 critères indépendants, chacun classé Bon / Acceptable / Mauvais selon des seuils propres à l'activité :
+
+- **Température** — moyenne de `temperatureMin`/`temperatureMax` du jour.
+- **Précipitation** — probabilité maximale de précipitation (%).
+- **Vent** — vitesse de vent maximale (km/h).
+
+Combinaison volontairement simple :
+
+- un seul critère **Mauvais** → **Déconseillée** ;
+- les 3 critères **Bons** → **Recommandée** ;
+- sinon (aucun mauvais, au moins un acceptable) → **Possible**.
+
+Seuils retenus (Bon / Acceptable, au-delà = Mauvais) :
+
+| Activité | Température (Bon) | Température (Acceptable) | Précipitation (Bon) | Précipitation (Acceptable) | Vent (Bon) | Vent (Acceptable) |
+|---|---|---|---|---|---|---|
+| Balade | 10–28 °C | 0–35 °C | ≤ 20 % | ≤ 60 % | ≤ 30 km/h | ≤ 50 km/h |
+| Course | 5–22 °C | -5–30 °C | ≤ 20 % | ≤ 60 % | ≤ 25 km/h | ≤ 45 km/h |
+| Pique-nique | 15–28 °C | 10–33 °C | ≤ 10 % | ≤ 50 % | ≤ 20 km/h | ≤ 35 km/h |
+
+Rationale : la balade tolère un large éventail de conditions (activité mobile, peu sensible à la pluie légère) ; la course est plus sensible aux températures extrêmes (effort physique) ; le pique-nique, activité statique en extérieur, est le plus exigeant sur la pluie et le vent (confort d'installation) tout en préférant des températures chaudes mais non caniculaires. Ces seuils sont un choix assumé et documenté plutôt qu'un modèle météo scientifique — conformément à l'objectif du test.
+
 ## Tests
 
 ```bash
@@ -125,4 +152,4 @@ _(à compléter en fin de développement)_
 
 ## Outils d'IA utilisés
 
-- **Claude** (Anthropic) — utilisé pour la création du planning de développement (découpage en étapes de ce README) et la formulation des justifications d'architecture et de bibliothèques. L'ensemble des choix a été validé et arbitré par moi ; je suis en mesure d'expliquer et de modifier tout le code livré.
+- **Claude** (Anthropic model Sonnet) — utilisé pour la création du planning de développement (découpage en étapes de ce README) et la formulation des justifications d'architecture et de bibliothèques. L'ensemble des choix a été validé et arbitré par moi ; je suis en mesure d'expliquer et de modifier tout le code livré.

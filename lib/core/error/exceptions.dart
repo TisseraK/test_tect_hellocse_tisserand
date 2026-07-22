@@ -1,6 +1,6 @@
-/// Exceptions levées par la couche data (datasources distantes et locales).
-/// Elles restent internes à cette couche : les repositories les catchent et
-/// les traduisent en [Failure] pour le reste de l'application.
+/*Exceptions levées par la couche data (datasources distantes et locales).
+Elles restent internes à cette couche : les repositories les catchent et
+les traduisent en [Failure] pour le reste de l'application.*/
 class ServerException implements Exception {
   const ServerException([this.message = 'Une erreur serveur est survenue.']);
 
