@@ -60,7 +60,7 @@ Socle obligatoire d'abord, bonus ensuite seulement si le socle est terminé et v
 
 L'injection de dépendances est faite via `get_it` (service locator), câblée au démarrage de l'application, afin que chaque couche ne dépende que d'abstractions et puisse être testée indépendamment (repositories mockés avec `mocktail`, appels réseau simulés).
 
-Arborescence (fondations + domaine en place, `data/`/`presentation/` se remplissent au fil des étapes suivantes) :
+Arborescence (fondations, domaine et recherche de ville en place ; `data/`/`presentation/` continuent de se remplir au fil des étapes suivantes) :
 
 ```
 lib/
@@ -71,14 +71,22 @@ lib/
     error/        # exceptions (data) et failures (domaine/présentation)
     network/      # ApiClient, seul point de contact avec http.Client
     storage/      # initialisation Hive
-  data/           # DTO, datasources, implémentations de repositories
+  data/
+    models/         # CityModel — DTO + parsing JSON Open-Meteo
+    datasources/    # CityRemoteDataSource — appel API geocoding isolé
+    repositories/   # CityRepositoryImpl — mapping + traduction erreurs
   domain/
     entities/     # City, DailyForecast, Activity, RecommendationLevel
     repositories/ # contrats CityRepository, WeatherRepository, FavoritesRepository
     usecases/     # RecommendActivity — moteur de recommandation d'activité
-  presentation/   # BLoC/Cubit, écrans, widgets
+  presentation/
+    bloc/city_search/  # CitySearchBloc (event/state), anti-rebond + restartable
+    screens/search/    # écran de recherche (chargement/erreur/vide/résultats)
+    widgets/            # CitySearchResultTile
   main.dart       # bootstrap: charge .env, initialise Hive, câble get_it
 ```
+
+Recherche de ville : l'anti-rebond (400 ms) est géré côté UI (`Timer` sur le `TextField`) plutôt que dans le BLoC, pour garder ce dernier simple — c'est une préoccupation de saisie utilisateur, pas de logique métier. Le `CitySearchBloc` utilise le transformer `restartable()` de `bloc_concurrency` : si une recherche plus récente est déclenchée avant qu'une précédente n'ait répondu, cette dernière est abandonnée, pour éviter qu'une réponse réseau en retard n'écrase un résultat plus récent.
 
 Gestion des erreurs : les datasources lèvent des exceptions typées (`ServerException`, `NetworkException`, `CacheException`), que les repositories catchent et traduisent en `Failure` (`ServerFailure`, `NetworkFailure`, `CacheFailure`) consommées par les BLoC — pas d'exception brute qui remonte jusqu'à l'UI.
 
@@ -99,6 +107,7 @@ Open-Meteo est une API publique et gratuite, sans clé il n'y a donc aucun secre
 | `get_it` | Injection de dépendances (service locator) | Câblage simple des couches sans dépendre du widget tree, facilement surchargeable en test (mocks) |
 | `http` | Appels aux API Open-Meteo (geocoding + forecast) | Le besoin se limite à deux endpoints GET publics sans clé ni intercepteurs ; package officiel de l'équipe Dart, suffisant et léger (pas besoin des fonctionnalités avancées d'un client comme Dio) |
 | `flutter_dotenv` | Chargement des URLs de base depuis `.env` | Externalise la configuration d'environnement hors du code plutôt qu'en dur, pratique standard démontrée ici bien qu'aucune valeur ne soit un secret sur ce projet (voir ci-dessus) |
+| `bloc_concurrency` | Transformer `restartable()` pour le BLoC de recherche | Package officiel de l'écosystème bloc dédié à ce problème précis (annuler une recherche obsolète au profit de la plus récente), plus fiable qu'une gestion manuelle des races dans le BLoC |
 | `hive_ce` / `hive_ce_flutter` | Persistance locale (favoris, cache des prévisions) | Stockage NoSQL embarqué, rapide, sans setup SQL, adapté à de petites structures (liste de villes favorites, prévisions en cache) ; fork activement maintenu du historique `hive` (dernière publication de `hive` en 2022) — préféré pour un projet livré aujourd'hui en Flutter 3.44/Dart 3.12 |
 | `mocktail` (dev) | Mocks pour les tests (datasources/repositories) | Permet de mocker les interfaces de repository/datasource sans génération de code, répond directement à l'exigence « appels API isolés afin d'être remplacés lors des tests » |
 | `bloc_test` (dev) | Tests des transitions d'état des BLoC | Compagnon officiel de `flutter_bloc`, permet d'asserter des séquences d'états de façon déclarative |

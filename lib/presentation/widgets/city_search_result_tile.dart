@@ -1,0 +1,28 @@
+import 'package:flutter/material.dart';
+
+import '../../domain/entities/city.dart';
+
+class CitySearchResultTile extends StatelessWidget {
+  const CitySearchResultTile({
+    super.key,
+    required this.city,
+    required this.onTap,
+  });
+
+  final City city;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final subtitleParts = [
+      if (city.admin1 != null && city.admin1!.isNotEmpty) city.admin1!,
+      city.country,
+    ];
+    return ListTile(
+      leading: const Icon(Icons.location_city),
+      title: Text(city.name),
+      subtitle: Text(subtitleParts.join(' · ')),
+      onTap: onTap,
+    );
+  }
+}

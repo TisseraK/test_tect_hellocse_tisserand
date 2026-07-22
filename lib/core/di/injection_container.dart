@@ -1,6 +1,10 @@
 import 'package:get_it/get_it.dart';
 import 'package:hive_ce_flutter/hive_ce_flutter.dart';
 
+import '../../data/datasources/city_remote_data_source.dart';
+import '../../data/repositories/city_repository_impl.dart';
+import '../../domain/repositories/city_repository.dart';
+import '../../presentation/bloc/city_search/city_search_bloc.dart';
 import '../constants/hive_box_names.dart';
 import '../network/api_client.dart';
 
@@ -20,6 +24,18 @@ Future<void> initDependencies() async {
     instanceName: HiveBoxNames.forecastCache,
   );
 
-  // Data sources, repositories, use cases et BLoC seront enregistrés ici au
-  // fur et à mesure de l'implémentation de chaque couche.
+  // Data sources
+  sl.registerLazySingleton<CityRemoteDataSource>(
+    () => CityRemoteDataSourceImpl(sl<ApiClient>()),
+  );
+
+  // Repositories
+  sl.registerLazySingleton<CityRepository>(
+    () => CityRepositoryImpl(sl<CityRemoteDataSource>()),
+  );
+
+  // BLoC — une nouvelle instance à chaque écran (pas de singleton).
+  sl.registerFactory<CitySearchBloc>(
+    () => CitySearchBloc(sl<CityRepository>()),
+  );
 }

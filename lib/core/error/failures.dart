@@ -1,7 +1,7 @@
 /* Erreurs exposées par le domaine et la présentation, traduites par les
  repositories à partir des exceptions de la couche data. L'UI ne connaît
  jamais les exceptions réseau/stockage brutes, seulement ces [Failure].*/
-abstract class Failure {
+abstract class Failure implements Exception {
   const Failure(this.message);
 
   final String message;

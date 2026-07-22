@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'core/di/injection_container.dart';
 import 'core/storage/hive_initializer.dart';
+import 'presentation/bloc/city_search/city_search_bloc.dart';
+import 'presentation/screens/search/search_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: '.env');
   await HiveInitializer.init();
   await initDependencies();
-  runApp(const MeteoDeSortieApp());
+  runApp(MeteoDeSortieApp());
 }
 
 class MeteoDeSortieApp extends StatelessWidget {
@@ -30,18 +33,16 @@ class MeteoDeSortieApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: const _FoundationsPlaceholder(),
-    );
-  }
-}
-
-class _FoundationsPlaceholder extends StatelessWidget {
-  const _FoundationsPlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: Text('Météo de sortie — fondations en place')),
+      home: BlocProvider<CitySearchBloc>(
+        create: (_) => sl<CitySearchBloc>(),
+        child: SearchScreen(
+          onCitySelected: (city) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Ville sélectionnée : ${city.name}')),
+            );
+          },
+        ),
+      ),
     );
   }
 }

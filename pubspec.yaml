@@ -16,6 +16,7 @@ dependencies:
   hive_ce: ^2.19.3
   hive_ce_flutter: ^2.3.4
   flutter_dotenv: ^5.2.1
+  bloc_concurrency: ^0.3.0
 
 dev_dependencies:
   flutter_test:
