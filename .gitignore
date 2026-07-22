@@ -44,3 +44,6 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 /documentation/
+
+# Environment configuration (local copy; .env.example is versioned)
+.env
