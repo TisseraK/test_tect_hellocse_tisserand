@@ -26,6 +26,7 @@ Application Flutter permettant de rechercher une ville, consulter ses prévision
 ## Lancer le projet
 
 ```bash
+cp .env.example .env   # uniquement si .env n'existe pas déjà
 flutter pub get
 flutter run
 ```
@@ -58,6 +59,25 @@ Socle obligatoire d'abord, bonus ensuite seulement si le socle est terminé et v
 **Pourquoi BLoC :** c'est le pattern de gestion d'état le plus directement complémentaire à la Clean Architecture dans l'écosystème Flutter (flux unidirectionnel event → state, states immuables, aucune logique métier dans les widgets). Il a un outillage de test mature (`bloc_test`) qui permet de vérifier des séquences d'états (chargement → erreur/succès) sans monter l'UI, ce qui correspond exactement à l'attendu « widgets peu chargés en logique ».
 
 L'injection de dépendances est faite via `get_it` (service locator), câblée au démarrage de l'application, afin que chaque couche ne dépende que d'abstractions et puisse être testée indépendamment (repositories mockés avec `mocktail`, appels réseau simulés).
+
+Arborescence (fondations en place, `data/`/`domain/`/`presentation/` se remplissent au fil des étapes suivantes) :
+
+```
+lib/
+  core/
+    constants/    # noms des boxes Hive, etc.
+    di/           # injection_container.dart — service locator get_it
+    env/          # lecture typée des variables du .env
+    error/        # exceptions (data) et failures (domaine/présentation)
+    network/      # ApiClient, seul point de contact avec http.Client
+    storage/      # initialisation Hive
+  data/           # DTO, datasources, implémentations de repositories
+  domain/         # entités, contrats de repositories, use cases
+  presentation/   # BLoC/Cubit, écrans, widgets
+  main.dart       # bootstrap: charge .env, initialise Hive, câble get_it
+```
+
+Gestion des erreurs : les datasources lèvent des exceptions typées (`ServerException`, `NetworkException`, `CacheException`), que les repositories catchent et traduisent en `Failure` (`ServerFailure`, `NetworkFailure`, `CacheFailure`) consommées par les BLoC — pas d'exception brute qui remonte jusqu'à l'UI.
 
 
 ### Configuration d'environnement (`.env`)
