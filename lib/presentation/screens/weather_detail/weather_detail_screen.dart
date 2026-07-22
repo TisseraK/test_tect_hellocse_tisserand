@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../domain/entities/activity.dart';
 import '../../../domain/entities/city.dart';
 import '../../bloc/weather_detail/weather_detail_bloc.dart';
 import '../../bloc/weather_detail/weather_detail_event.dart';
 import '../../bloc/weather_detail/weather_detail_state.dart';
+import '../../widgets/activity_selector.dart';
 import '../../widgets/daily_forecast_tile.dart';
 
 class WeatherDetailScreen extends StatefulWidget {
@@ -17,6 +19,8 @@ class WeatherDetailScreen extends StatefulWidget {
 }
 
 class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
+  Activity _selectedActivity = Activity.walk;
+
   @override
   void initState() {
     super.initState();
@@ -24,7 +28,16 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
   }
 
   void _requestForecast() {
-    context.read<WeatherDetailBloc>().add(WeatherDetailStarted(widget.city));
+    context.read<WeatherDetailBloc>().add(
+      WeatherDetailStarted(widget.city, _selectedActivity),
+    );
+  }
+
+  void _onActivityChanged(Activity activity) {
+    setState(() => _selectedActivity = activity);
+    context.read<WeatherDetailBloc>().add(
+      WeatherDetailActivityChanged(activity),
+    );
   }
 
   @override
@@ -46,22 +59,38 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
           ),
         ),
       ),
-      body: BlocBuilder<WeatherDetailBloc, WeatherDetailState>(
-        builder: (context, state) => switch (state) {
-          WeatherDetailLoading() => const Center(
-            child: CircularProgressIndicator(),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+            child: ActivitySelector(
+              selected: _selectedActivity,
+              onChanged: _onActivityChanged,
+            ),
           ),
-          WeatherDetailError(:final message) => _ErrorView(
-            message: message,
-            onRetry: _requestForecast,
+          Expanded(
+            child: BlocBuilder<WeatherDetailBloc, WeatherDetailState>(
+              builder: (context, state) => switch (state) {
+                WeatherDetailLoading() => const Center(
+                  child: CircularProgressIndicator(),
+                ),
+                WeatherDetailError(:final message) => _ErrorView(
+                  message: message,
+                  onRetry: _requestForecast,
+                ),
+                WeatherDetailLoaded(:final forecasts, :final recommendations) =>
+                  ListView.builder(
+                    padding: const EdgeInsets.all(12),
+                    itemCount: forecasts.length,
+                    itemBuilder: (context, index) => DailyForecastTile(
+                      forecast: forecasts[index],
+                      recommendation: recommendations[index],
+                    ),
+                  ),
+              },
+            ),
           ),
-          WeatherDetailLoaded(:final forecasts) => ListView.builder(
-            padding: const EdgeInsets.all(12),
-            itemCount: forecasts.length,
-            itemBuilder: (context, index) =>
-                DailyForecastTile(forecast: forecasts[index]),
-          ),
-        },
+        ],
       ),
     );
   }

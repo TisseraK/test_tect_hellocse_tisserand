@@ -60,7 +60,7 @@ Socle obligatoire d'abord, bonus ensuite seulement si le socle est terminé et v
 
 L'injection de dépendances est faite via `get_it` (service locator), câblée au démarrage de l'application, afin que chaque couche ne dépende que d'abstractions et puisse être testée indépendamment (repositories mockés avec `mocktail`, appels réseau simulés).
 
-Arborescence (fondations, domaine, recherche de ville et prévisions météo en place ; `presentation/` continue de se remplir au fil des étapes suivantes — favoris) :
+Arborescence (fondations, domaine, recherche de ville, prévisions météo et recommandation d'activité en place ; il reste les favoris) :
 
 ```
 lib/
@@ -82,18 +82,20 @@ lib/
   presentation/
     bloc/
       city_search/     # CitySearchBloc (event/state), anti-rebond + restartable
-      weather_detail/  # WeatherDetailBloc (event/state)
+      weather_detail/  # WeatherDetailBloc — prévisions + recommandations par activité
     screens/
       search/          # écran de recherche (chargement/erreur/vide/résultats)
-      weather_detail/  # écran détail météo (7 jours, retry sur erreur)
-    widgets/         # CitySearchResultTile, DailyForecastTile
+      weather_detail/  # écran détail météo (7 jours, sélecteur d'activité, retry sur erreur)
+    widgets/         # CitySearchResultTile, DailyForecastTile, ActivitySelector, RecommendationBadge
     utils/           # mapping code météo WMO -> libellé/icône, formatage date FR
   main.dart       # bootstrap: charge .env, initialise Hive, câble get_it
 ```
 
 Recherche de ville : l'anti-rebond (400 ms) est géré côté UI (`Timer` sur le `TextField`) plutôt que dans le BLoC, pour garder ce dernier simple — c'est une préoccupation de saisie utilisateur, pas de logique métier. Le `CitySearchBloc` utilise le transformer `restartable()` de `bloc_concurrency` : si une recherche plus récente est déclenchée avant qu'une précédente n'ait répondu, cette dernière est abandonnée, pour éviter qu'une réponse réseau en retard n'écrase un résultat plus récent.
 
-Prévisions météo : sélectionner une ville dans les résultats de recherche pousse l'écran détail, qui déclenche le chargement des 7 prochains jours (`daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max,windspeed_10m_max&timezone=auto&forecast_days=7`). Chaque jour affiche condition météo, températures min/max, probabilité de précipitation et vent maximal ; l'état d'erreur propose un bouton « Réessayer ». Le thème clair/sombre est géré globalement (`MaterialApp.theme`/`darkTheme`) ; aucune couleur n'est codée en dur dans les widgets, tout provient du `ColorScheme` du thème actif.
+Prévisions météo : sélectionner une ville dans les résultats de recherche pousse l'écran détail, qui déclenche le chargement des 7 prochains jours (`daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max,windspeed_10m_max&timezone=auto&forecast_days=7`). Chaque jour affiche condition météo, températures min/max, probabilité de précipitation et vent maximal ; l'état d'erreur propose un bouton « Réessayer ». Le thème clair/sombre est géré globalement (`MaterialApp.theme`/`darkTheme`).
+
+Recommandation d'activité : un `SegmentedButton` (Balade/Course/Pique-nique) pilote l'activité sélectionnée. Le `WeatherDetailBloc` reçoit le use case `RecommendActivity` par injection et calcule, à chaque chargement ou changement d'activité, un niveau de recommandation par jour — les widgets ne font jamais eux-mêmes appel au domaine, ils affichent l'état déjà calculé. Les badges Recommandée/Possible/Déconseillée utilisent des couleurs sémantiques fixes (vert/orange/rouge, cf. `RecommendationBadge`), seule exception au principe « aucune couleur codée en dur » car il n'existe pas de rôle succès/avertissement dans un `ColorScheme` Material standard.
 
 Gestion des erreurs : les datasources lèvent des exceptions typées (`ServerException`, `NetworkException`, `CacheException`), que les repositories catchent et traduisent en `Failure` (`ServerFailure`, `NetworkFailure`, `CacheFailure`) consommées par les BLoC — pas d'exception brute qui remonte jusqu'à l'UI.
 

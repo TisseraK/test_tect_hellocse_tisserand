@@ -7,6 +7,7 @@ import '../../data/repositories/city_repository_impl.dart';
 import '../../data/repositories/weather_repository_impl.dart';
 import '../../domain/repositories/city_repository.dart';
 import '../../domain/repositories/weather_repository.dart';
+import '../../domain/usecases/recommend_activity.dart';
 import '../../presentation/bloc/city_search/city_search_bloc.dart';
 import '../../presentation/bloc/weather_detail/weather_detail_bloc.dart';
 import '../constants/hive_box_names.dart';
@@ -44,11 +45,14 @@ Future<void> initDependencies() async {
     () => WeatherRepositoryImpl(sl<WeatherRemoteDataSource>()),
   );
 
+  // Use cases
+  sl.registerLazySingleton<RecommendActivity>(() => const RecommendActivity());
+
   // BLoC — une nouvelle instance à chaque écran (pas de singleton).
   sl.registerFactory<CitySearchBloc>(
     () => CitySearchBloc(sl<CityRepository>()),
   );
   sl.registerFactory<WeatherDetailBloc>(
-    () => WeatherDetailBloc(sl<WeatherRepository>()),
+    () => WeatherDetailBloc(sl<WeatherRepository>(), sl<RecommendActivity>()),
   );
 }
