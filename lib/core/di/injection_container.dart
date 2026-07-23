@@ -28,10 +28,6 @@ Future<void> initDependencies() async {
     () => Hive.box<Map>(HiveBoxNames.favorites),
     instanceName: HiveBoxNames.favorites,
   );
-  sl.registerLazySingleton<Box<Map>>(
-    () => Hive.box<Map>(HiveBoxNames.forecastCache),
-    instanceName: HiveBoxNames.forecastCache,
-  );
 
   // Data sources
   sl.registerLazySingleton<CityRemoteDataSource>(

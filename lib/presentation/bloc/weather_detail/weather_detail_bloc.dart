@@ -18,14 +18,23 @@ class WeatherDetailBloc extends Bloc<WeatherDetailEvent, WeatherDetailState> {
   final WeatherRepository _weatherRepository;
   final RecommendActivity _recommendActivity;
 
+  /// Activité la plus récente demandée par l'utilisateur. Suivie ici plutôt
+  /// que lue depuis l'event de `WeatherDetailStarted` au moment de l'émission
+  /// finale : si l'utilisateur change d'activité pendant que le chargement
+  /// initial est encore en cours, ce champ capture ce choix pour que le
+  /// résultat final reflète la dernière sélection, pas celle figée au moment
+  /// du lancement de la requête.
+  Activity _selectedActivity = Activity.walk;
+
   Future<void> _onStarted(
     WeatherDetailStarted event,
     Emitter<WeatherDetailState> emit,
   ) async {
+    _selectedActivity = event.activity;
     emit(const WeatherDetailLoading());
     try {
       final forecasts = await _weatherRepository.getForecast(event.city);
-      emit(_loadedState(forecasts, event.activity));
+      emit(_loadedState(forecasts, _selectedActivity));
     } on Failure catch (failure) {
       emit(WeatherDetailError(failure.message));
     }
@@ -35,9 +44,10 @@ class WeatherDetailBloc extends Bloc<WeatherDetailEvent, WeatherDetailState> {
     WeatherDetailActivityChanged event,
     Emitter<WeatherDetailState> emit,
   ) {
+    _selectedActivity = event.activity;
     final current = state;
     if (current is WeatherDetailLoaded) {
-      emit(_loadedState(current.forecasts, event.activity));
+      emit(_loadedState(current.forecasts, _selectedActivity));
     }
   }
 
