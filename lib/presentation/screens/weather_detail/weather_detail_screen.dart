@@ -97,9 +97,10 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
                   onRetry: _requestForecast,
                 ),
                 WeatherDetailLoaded(:final forecasts, :final recommendations) =>
-                  ListView.builder(
+                  ListView.separated(
                     padding: const EdgeInsets.all(12),
                     itemCount: forecasts.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 8),
                     itemBuilder: (context, index) => DailyForecastTile(
                       forecast: forecasts[index],
                       recommendation: recommendations[index],

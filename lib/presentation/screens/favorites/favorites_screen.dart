@@ -30,8 +30,9 @@ class FavoritesScreen extends StatelessWidget {
               icon: Icons.favorite_border,
             ),
           FavoritesLoaded(:final favorites) => ListView.separated(
+            padding: const EdgeInsets.all(16),
             itemCount: favorites.length,
-            separatorBuilder: (_, _) => const Divider(height: 1),
+            separatorBuilder: (_, _) => const SizedBox(height: 8),
             itemBuilder: (context, index) {
               final city = favorites[index];
               return CityListTile(

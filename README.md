@@ -71,6 +71,7 @@ lib/
     error/        # exceptions (data) et failures (domaine/présentation)
     network/      # ApiClient, seul point de contact avec http.Client
     storage/      # initialisation Hive
+    theme/        # AppTheme — thème Material 3 centralisé (clair/sombre)
   data/
     models/         # CityModel, DailyForecastModel — DTO + parsing/sérialisation JSON
     datasources/    # City/WeatherRemoteDataSource, FavoritesLocalDataSource — accès isolés
@@ -104,6 +105,8 @@ Prévisions météo : sélectionner une ville dans les résultats de recherche p
 Recommandation d'activité : un `SegmentedButton` (Balade/Course/Pique-nique) pilote l'activité sélectionnée. Le `WeatherDetailBloc` reçoit le use case `RecommendActivity` par injection et calcule, à chaque chargement ou changement d'activité, un niveau de recommandation par jour — les widgets ne font jamais eux-mêmes appel au domaine, ils affichent l'état déjà calculé. Les badges Recommandée/Possible/Déconseillée utilisent des couleurs sémantiques fixes (vert/orange/rouge, cf. `RecommendationBadge`), seule exception au principe « aucune couleur codée en dur » car il n'existe pas de rôle succès/avertissement dans un `ColorScheme` Material standard.
 
 Gestion des erreurs : les datasources lèvent des exceptions typées (`ServerException`, `NetworkException`, `CacheException`), que les repositories catchent et traduisent en `Failure` (`ServerFailure`, `NetworkFailure`, `CacheFailure`) consommées par les BLoC — pas d'exception brute qui remonte jusqu'à l'UI.
+
+Thème : `AppTheme` centralise un seul seed color (Material 3 `ColorScheme.fromSeed`) et les styles de composants partagés (cartes, champs de recherche, app bar, navigation) pour les déclinaisons claire/sombre, plutôt que des styles dispersés/dupliqués dans chaque écran. La recherche utilise le `SearchBar` Material 3 natif ; les résultats de recherche et les favoris sont regroupés en cartes arrondies espacées plutôt qu'en liste à séparateurs, pour un rendu plus actuel sans complexité ajoutée (aucun widget custom, uniquement du theming Material 3 standard).
 
 
 ### Configuration d'environnement (`.env`)

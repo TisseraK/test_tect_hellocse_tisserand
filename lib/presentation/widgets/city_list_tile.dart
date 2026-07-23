@@ -15,11 +15,14 @@ class CityListTile extends StatelessWidget {
       if (city.admin1 != null && city.admin1!.isNotEmpty) city.admin1!,
       city.country,
     ];
-    return ListTile(
-      leading: const Icon(Icons.location_city),
-      title: Text(city.name),
-      subtitle: Text(subtitleParts.join(' · ')),
-      onTap: onTap,
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: ListTile(
+        leading: const Icon(Icons.location_city),
+        title: Text(city.name),
+        subtitle: Text(subtitleParts.join(' · ')),
+        onTap: onTap,
+      ),
     );
   }
 }
