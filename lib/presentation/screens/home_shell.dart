@@ -5,6 +5,7 @@ import '../../core/di/injection_container.dart';
 import '../../domain/entities/city.dart';
 import '../bloc/city_search/city_search_bloc.dart';
 import '../bloc/weather_detail/weather_detail_bloc.dart';
+import '../cubit/recent_searches/recent_searches_cubit.dart';
 import 'favorites/favorites_screen.dart';
 import 'search/search_screen.dart';
 import 'weather_detail/weather_detail_screen.dart';
@@ -35,8 +36,13 @@ class _HomeShellState extends State<HomeShell> {
   @override
   Widget build(BuildContext context) {
     final screens = [
-      BlocProvider<CitySearchBloc>(
-        create: (_) => sl<CitySearchBloc>(),
+      MultiBlocProvider(
+        providers: [
+          BlocProvider<CitySearchBloc>(create: (_) => sl<CitySearchBloc>()),
+          BlocProvider<RecentSearchesCubit>(
+            create: (_) => sl<RecentSearchesCubit>(),
+          ),
+        ],
         child: SearchScreen(onCitySelected: _openWeatherDetail),
       ),
       FavoritesScreen(onCitySelected: _openWeatherDetail),

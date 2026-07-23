@@ -3,17 +3,21 @@ import 'package:hive_ce_flutter/hive_ce_flutter.dart';
 
 import '../../data/datasources/city_remote_data_source.dart';
 import '../../data/datasources/favorites_local_data_source.dart';
+import '../../data/datasources/recent_searches_local_data_source.dart';
 import '../../data/datasources/weather_remote_data_source.dart';
 import '../../data/repositories/city_repository_impl.dart';
 import '../../data/repositories/favorites_repository_impl.dart';
+import '../../data/repositories/recent_searches_repository_impl.dart';
 import '../../data/repositories/weather_repository_impl.dart';
 import '../../domain/repositories/city_repository.dart';
 import '../../domain/repositories/favorites_repository.dart';
+import '../../domain/repositories/recent_searches_repository.dart';
 import '../../domain/repositories/weather_repository.dart';
 import '../../domain/usecases/recommend_activity.dart';
 import '../../presentation/bloc/city_search/city_search_bloc.dart';
 import '../../presentation/bloc/weather_detail/weather_detail_bloc.dart';
 import '../../presentation/cubit/favorites/favorites_cubit.dart';
+import '../../presentation/cubit/recent_searches/recent_searches_cubit.dart';
 import '../constants/hive_box_names.dart';
 import '../network/api_client.dart';
 
@@ -28,6 +32,10 @@ Future<void> initDependencies() async {
     () => Hive.box<Map>(HiveBoxNames.favorites),
     instanceName: HiveBoxNames.favorites,
   );
+  sl.registerLazySingleton<Box<List>>(
+    () => Hive.box<List>(HiveBoxNames.recentSearches),
+    instanceName: HiveBoxNames.recentSearches,
+  );
 
   // Data sources
   sl.registerLazySingleton<CityRemoteDataSource>(
@@ -41,6 +49,11 @@ Future<void> initDependencies() async {
       sl<Box<Map>>(instanceName: HiveBoxNames.favorites),
     ),
   );
+  sl.registerLazySingleton<RecentSearchesLocalDataSource>(
+    () => RecentSearchesLocalDataSourceImpl(
+      sl<Box<List>>(instanceName: HiveBoxNames.recentSearches),
+    ),
+  );
 
   // Repositories
   sl.registerLazySingleton<CityRepository>(
@@ -52,13 +65,16 @@ Future<void> initDependencies() async {
   sl.registerLazySingleton<FavoritesRepository>(
     () => FavoritesRepositoryImpl(sl<FavoritesLocalDataSource>()),
   );
+  sl.registerLazySingleton<RecentSearchesRepository>(
+    () => RecentSearchesRepositoryImpl(sl<RecentSearchesLocalDataSource>()),
+  );
 
   // Use cases
   sl.registerLazySingleton<RecommendActivity>(() => const RecommendActivity());
 
-  // BLoC/Cubit — une nouvelle instance à chaque écran, sauf FavoritesCubit :
-  // état partagé entre l'écran Favoris et le bouton favori de l'écran détail,
-  // câblé en singleton pour rester synchronisé entre les deux.
+  // BLoC/Cubit — une nouvelle instance à chaque écran, sauf FavoritesCubit et
+  // RecentSearchesCubit : état qui doit rester cohérent tant que l'app
+  // tourne, câblés en singleton plutôt que recréés à chaque écran.
   sl.registerFactory<CitySearchBloc>(
     () => CitySearchBloc(sl<CityRepository>()),
   );
@@ -67,5 +83,8 @@ Future<void> initDependencies() async {
   );
   sl.registerLazySingleton<FavoritesCubit>(
     () => FavoritesCubit(sl<FavoritesRepository>()),
+  );
+  sl.registerLazySingleton<RecentSearchesCubit>(
+    () => RecentSearchesCubit(sl<RecentSearchesRepository>()),
   );
 }

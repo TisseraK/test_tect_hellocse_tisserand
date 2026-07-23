@@ -74,11 +74,11 @@ lib/
     theme/        # AppTheme — thème Material 3 centralisé (clair/sombre)
   data/
     models/         # CityModel, DailyForecastModel — DTO + parsing/sérialisation JSON
-    datasources/    # City/WeatherRemoteDataSource, FavoritesLocalDataSource — accès isolés
+    datasources/    # City/WeatherRemoteDataSource, Favorites/RecentSearchesLocalDataSource — accès isolés
     repositories/   # *RepositoryImpl — mapping + traduction erreurs
   domain/
     entities/     # City, DailyForecast, Activity, RecommendationLevel
-    repositories/ # contrats CityRepository, WeatherRepository, FavoritesRepository
+    repositories/ # contrats CityRepository, WeatherRepository, FavoritesRepository, RecentSearchesRepository
     usecases/     # RecommendActivity — moteur de recommandation d'activité
   presentation/
     bloc/
@@ -86,6 +86,7 @@ lib/
       weather_detail/  # WeatherDetailBloc — prévisions + recommandations par activité
     cubit/
       favorites/       # FavoritesCubit — état partagé (écran Favoris + bouton favori)
+      recent_searches/ # RecentSearchesCubit — historique des villes consultées via la recherche
     screens/
       search/          # écran de recherche (chargement/erreur/vide/résultats)
       weather_detail/  # écran détail météo (7 jours, sélecteur d'activité, favori, retry)
@@ -97,6 +98,8 @@ lib/
 ```
 
 Recherche de ville : l'anti-rebond (400 ms) est géré côté UI (`Timer` sur le `TextField`) plutôt que dans le BLoC, pour garder ce dernier simple — c'est une préoccupation de saisie utilisateur, pas de logique métier. Le `CitySearchBloc` utilise le transformer `restartable()` de `bloc_concurrency` : si une recherche plus récente est déclenchée avant qu'une précédente n'ait répondu, cette dernière est abandonnée, pour éviter qu'une réponse réseau en retard n'écrase un résultat plus récent.
+
+Historique des recherches : tant qu'aucune recherche n'est en cours (champ vide), la zone sous le champ affiche les dernières villes dont la fiche météo a été ouverte depuis cet écran (pas depuis les favoris), la plus récente en tête ; taper dessus ouvre directement la fiche météo. Persisté via Hive (`RecentSearchesLocalDataSource`, box dédiée stockant une liste ordonnée plafonnée à 8 entrées plutôt qu'une entrée par ville comme les favoris, car ici l'ordre et la taille comptent plus que l'accès par clé). `RecentSearchesCubit` est un singleton `get_it`, comme `FavoritesCubit`, pour rester cohérent tant que l'app tourne.
 
 Favoris : `City` porte l'`id` renvoyé par l'API geocoding, utilisé comme clé Hive (plus fiable que les coordonnées en virgule flottante). `FavoritesLocalDataSource` isole l'accès à la box Hive derrière une interface, comme les datasources distantes. `FavoritesCubit` — un `Cubit` plutôt qu'un `Bloc`, car il n'y a que deux opérations simples (charger, basculer), pas de flux d'événements à orchestrer — est enregistré en **singleton** dans `get_it` et fourni **au-dessus du `MaterialApp`** (donc au-dessus de son `Navigator` interne) : c'est un état partagé entre l'écran Favoris et le bouton favori de l'écran détail (poussé par-dessus via `Navigator.push`), qui vit dans une route différente. Un `BlocProvider` scopé à une seule route (comme `CitySearchBloc` ou `WeatherDetailBloc`) ne serait pas visible depuis une autre route poussée sur le même `Navigator` — d'où ce placement volontairement plus haut. `HomeShell` (`IndexedStack` + `NavigationBar`) fournit les deux onglets Recherche/Favoris demandés par le sujet, tous deux capables d'ouvrir la même fiche météo.
 
@@ -174,6 +177,7 @@ sensibles (traduction d'erreurs, synchronisation d'état partagé) :
 | `test/presentation/bloc/city_search/city_search_bloc_test.dart` | Séquences d'états du `CitySearchBloc` (succès, vide, erreur, requête vide) | `bloc_test` (mocktail) |
 | `test/data/datasources/favorites_local_data_source_test.dart` | Ajout/retrait de favoris et **persistance réelle après fermeture/réouverture de Hive** | Datasource locale (Hive réel, répertoire temporaire) |
 | `test/presentation/bloc/weather_detail/weather_detail_bloc_test.dart` | Non-régression : un changement d'activité pendant le chargement initial doit refléter la dernière activité choisie, pas celle figée au lancement de la requête | `bloc_test` (mocktail) |
+| `test/data/datasources/recent_searches_local_data_source_test.dart` | Historique des recherches : ordre (plus récent en tête), dédoublonnage, plafond `maxEntries`, persistance après redémarrage | Datasource locale (Hive réel, répertoire temporaire) |
 
 Les datasources sont testées via leur point d'isolation documenté : `MockClient` pour le réseau,
 Hive pointé vers un répertoire temporaire pour le stockage local — jamais de mock du domaine ou

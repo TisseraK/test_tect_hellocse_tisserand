@@ -7,6 +7,8 @@ import '../../../domain/entities/city.dart';
 import '../../bloc/city_search/city_search_bloc.dart';
 import '../../bloc/city_search/city_search_event.dart';
 import '../../bloc/city_search/city_search_state.dart';
+import '../../cubit/recent_searches/recent_searches_cubit.dart';
+import '../../cubit/recent_searches/recent_searches_state.dart';
 import '../../widgets/city_list_tile.dart';
 
 class SearchScreen extends StatefulWidget {
@@ -38,6 +40,11 @@ class _SearchScreenState extends State<SearchScreen> {
     });
   }
 
+  void _selectCity(City city) {
+    context.read<RecentSearchesCubit>().addRecentSearch(city);
+    widget.onCitySelected?.call(city);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -58,9 +65,8 @@ class _SearchScreenState extends State<SearchScreen> {
             Expanded(
               child: BlocBuilder<CitySearchBloc, CitySearchState>(
                 builder: (context, state) => switch (state) {
-                  CitySearchInitial() => const _SearchMessage(
-                    message: 'Recherchez une ville pour consulter sa météo.',
-                    icon: Icons.travel_explore,
+                  CitySearchInitial() => _RecentSearches(
+                    onCitySelected: _selectCity,
                   ),
                   CitySearchLoading() => const Center(
                     child: CircularProgressIndicator(),
@@ -80,7 +86,7 @@ class _SearchScreenState extends State<SearchScreen> {
                       final city = cities[index];
                       return CityListTile(
                         city: city,
-                        onTap: () => widget.onCitySelected?.call(city),
+                        onTap: () => _selectCity(city),
                       );
                     },
                   ),
@@ -90,6 +96,53 @@ class _SearchScreenState extends State<SearchScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Affiché tant qu'aucune recherche n'est en cours : liste des dernières
+/// villes consultées (la plus récente en tête), ou le message d'accueil
+/// habituel si l'historique est vide.
+class _RecentSearches extends StatelessWidget {
+  const _RecentSearches({required this.onCitySelected});
+
+  final ValueChanged<City> onCitySelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<RecentSearchesCubit, RecentSearchesState>(
+      builder: (context, state) {
+        final cities = state is RecentSearchesLoaded
+            ? state.cities
+            : const <City>[];
+
+        if (cities.isEmpty) {
+          return const _SearchMessage(
+            message: 'Recherchez une ville pour consulter sa météo.',
+            icon: Icons.travel_explore,
+          );
+        }
+
+        return ListView.separated(
+          itemCount: cities.length + 1,
+          separatorBuilder: (_, _) => const SizedBox(height: 8),
+          itemBuilder: (context, index) {
+            if (index == 0) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Text(
+                  'Recherches récentes',
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: Theme.of(context).colorScheme.outline,
+                  ),
+                ),
+              );
+            }
+            final city = cities[index - 1];
+            return CityListTile(city: city, onTap: () => onCitySelected(city));
+          },
+        );
+      },
     );
   }
 }

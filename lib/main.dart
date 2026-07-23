@@ -27,6 +27,8 @@ class MeteoDeSortieApp extends StatelessWidget {
         title: 'Météo de sortie',
         theme: AppTheme.light(),
         darkTheme: AppTheme.dark(),
+
+        themeMode: ThemeMode.system,
         home: const HomeShell(),
       ),
     );
