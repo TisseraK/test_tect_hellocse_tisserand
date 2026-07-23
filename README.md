@@ -2,7 +2,7 @@
 
 Application Flutter permettant de rechercher une ville, consulter ses prévisions météo sur 7 jours et déterminer si une activité extérieure (balade, course, pique-nique) est recommandée. Données fournies par [Open-Meteo](https://open-meteo.com/) (aucune clé API requise).
 
-> Ce document sert de plan de route avant le développement : il fixe les choix d'architecture et de bibliothèques et le pourquoi de chacun, avant d'écrire la moindre ligne de code fonctionnel. Les sections encore vides (règles météo, limites, IA) seront complétées au fil de l'avancement.
+> Ce document a démarré comme plan de route avant le développement (choix d'architecture et de bibliothèques, et le pourquoi de chacun) et a été complété au fil de l'avancement. Le socle obligatoire du sujet est terminé ; voir [Limites connues et compromis](#limites-connues-et-compromis) pour ce qui reste hors périmètre.
 
 ## Sommaire
 
@@ -170,6 +170,7 @@ sensibles (traduction d'erreurs, synchronisation d'état partagé) :
 | `test/data/repositories/city_repository_impl_test.dart` | Traduction `ServerException`/`NetworkException` → `Failure` | Unitaire (mocktail) |
 | `test/presentation/bloc/city_search/city_search_bloc_test.dart` | Séquences d'états du `CitySearchBloc` (succès, vide, erreur, requête vide) | `bloc_test` (mocktail) |
 | `test/data/datasources/favorites_local_data_source_test.dart` | Ajout/retrait de favoris et **persistance réelle après fermeture/réouverture de Hive** | Datasource locale (Hive réel, répertoire temporaire) |
+| `test/presentation/bloc/weather_detail/weather_detail_bloc_test.dart` | Non-régression : un changement d'activité pendant le chargement initial doit refléter la dernière activité choisie, pas celle figée au lancement de la requête | `bloc_test` (mocktail) |
 
 Les datasources sont testées via leur point d'isolation documenté : `MockClient` pour le réseau,
 Hive pointé vers un répertoire temporaire pour le stockage local — jamais de mock du domaine ou
@@ -184,8 +185,15 @@ flutter analyze
 
 ## Limites connues et compromis
 
-_(à compléter en fin de développement)_
+- **Pas de mode hors-ligne** : recherche et prévisions nécessitent une connexion réseau à chaque consultation. Le cache des dernières prévisions consultées (bonus facultatif) n'a pas été implémenté ; Hive est prêt à l'accueillir (même approche que les favoris) si besoin.
+- **Pas de géolocalisation** : l'utilisateur recherche sa ville par nom, pas de détection de position actuelle (non demandé par le sujet).
+- **Mapping météo simplifié** : les codes WMO sont regroupés par grandes catégories (ciel clair, pluie, neige, orage...) plutôt que traduits un par un — cohérent avec l'objectif du test (« pas un modèle météo parfait »), mais deux intensités différentes d'un même phénomène (ex. pluie faible/forte) partagent parfois le même libellé.
+- **Pas de garde anti-double-navigation** : un double-tap très rapide sur un résultat de recherche peut pousser l'écran détail deux fois. Non corrigé pour rester dans le périmètre du sujet, mais identifié.
+- **Favoris strictement locaux** : stockés dans Hive sur l'appareil, aucune synchronisation entre appareils ou compte utilisateur.
+- **Thème clair/sombre** : suit uniquement le réglage système (`MaterialApp.theme`/`darkTheme`) ; pas de bascule manuelle dans l'app.
+- **Résultats de recherche non paginés** : l'API est interrogée avec `count=10`, fixe.
+- **Bonus non traités** (temps priorisé sur le socle obligatoire, comme demandé par le sujet) : cache hors-ligne, test d'intégration, CI, adaptation tablette, accessibilité approfondie, animations.
 
 ## Outils d'IA utilisés
 
-- **Claude** (Anthropic model Sonnet) — utilisé pour la création du planning de développement (découpage en étapes de ce README) et la formulation des justifications d'architecture et de bibliothèques. L'ensemble des choix a été validé et arbitré par moi ; je suis en mesure d'expliquer et de modifier tout le code livré.
+- **Claude** (Anthropic model Sonnet) — utilisé pour la création du planning de développement (découpage en étapes de ce README), la formulation des justifications d'architecture et de bibliothèques, ainsi que la création des fichiers de la structure Clean Architecture + BLoC (couches `data`/`domain`/`presentation`, squelette des BLoC/Cubit) pour gagner du temps sur la mise en place. L'ensemble des choix a été validé et arbitré par moi ; je suis en mesure d'expliquer et de modifier tout le code livré.
