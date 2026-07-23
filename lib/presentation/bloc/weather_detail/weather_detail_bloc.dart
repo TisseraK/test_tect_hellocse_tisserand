@@ -24,7 +24,7 @@ class WeatherDetailBloc extends Bloc<WeatherDetailEvent, WeatherDetailState> {
   /// initial est encore en cours, ce champ capture ce choix pour que le
   /// résultat final reflète la dernière sélection, pas celle figée au moment
   /// du lancement de la requête.
-  Activity _selectedActivity = Activity.walk;
+  Activity? _selectedActivity;
 
   Future<void> _onStarted(
     WeatherDetailStarted event,
@@ -53,15 +53,17 @@ class WeatherDetailBloc extends Bloc<WeatherDetailEvent, WeatherDetailState> {
 
   WeatherDetailLoaded _loadedState(
     List<DailyForecast> forecasts,
-    Activity activity,
+    Activity? activity,
   ) {
     return WeatherDetailLoaded(
       forecasts: forecasts,
       selectedActivity: activity,
-      recommendations: [
-        for (final forecast in forecasts)
-          _recommendActivity(forecast, activity),
-      ],
+      recommendations: activity == null
+          ? null
+          : [
+              for (final forecast in forecasts)
+                _recommendActivity(forecast, activity),
+            ],
     );
   }
 }

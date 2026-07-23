@@ -1,7 +1,9 @@
 enum Activity {
   walk('Balade'),
   run('Course'),
-  picnic('Pique-nique');
+  picnic('Pique-nique'),
+  golf('Golf'),
+  tennis('Tennis');
 
   const Activity(this.label);
 

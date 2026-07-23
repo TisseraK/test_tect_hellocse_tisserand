@@ -92,7 +92,7 @@ lib/
       weather_detail/  # écran détail météo (7 jours, sélecteur d'activité, favori, retry)
       favorites/       # écran Favoris
       home_shell.dart  # onglets Recherche/Favoris (NavigationBar)
-    widgets/         # CityListTile, DailyForecastTile, ActivitySelector, RecommendationBadge
+    widgets/         # CityListTile, DailyForecastTile, RecommendationBadge
     utils/           # mapping code météo WMO -> libellé/icône, formatage date FR
   main.dart       # bootstrap: charge .env, initialise Hive, câble get_it
 ```
@@ -105,7 +105,7 @@ Favoris : `City` porte l'`id` renvoyé par l'API geocoding, utilisé comme clé 
 
 Prévisions météo : sélectionner une ville dans les résultats de recherche pousse l'écran détail, qui déclenche le chargement des 7 prochains jours (`daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max,windspeed_10m_max&timezone=auto&forecast_days=7`). Chaque jour affiche condition météo, températures min/max, probabilité de précipitation et vent maximal ; l'état d'erreur propose un bouton « Réessayer ». Le thème clair/sombre est géré globalement (`MaterialApp.theme`/`darkTheme`).
 
-Recommandation d'activité : un `SegmentedButton` (Balade/Course/Pique-nique) pilote l'activité sélectionnée. Le `WeatherDetailBloc` reçoit le use case `RecommendActivity` par injection et calcule, à chaque chargement ou changement d'activité, un niveau de recommandation par jour — les widgets ne font jamais eux-mêmes appel au domaine, ils affichent l'état déjà calculé. Les badges Recommandée/Possible/Déconseillée utilisent des couleurs sémantiques fixes (vert/orange/rouge, cf. `RecommendationBadge`), seule exception au principe « aucune couleur codée en dur » car il n'existe pas de rôle succès/avertissement dans un `ColorScheme` Material standard.
+Recommandation d'activité : un bouton en bas de l'écran détail (`bottomNavigationBar`) ouvre un `showModalBottomSheet` listant les 5 activités (Balade, Course, Pique-nique, Golf, Tennis) plus une option « Aucune », plutôt qu'un sélecteur toujours visible — l'activité n'est pas le point d'entrée principal de l'écran, elle reste accessible sans occuper d'espace en permanence. Le sheet utilise `RadioGroup<Activity?>` (widget Flutter recommandé depuis 3.32, `RadioListTile.groupValue`/`onChanged` étant dépréciés) et est enveloppé dans un `SingleChildScrollView` pour rester utilisable sur petit écran avec 6 options. Tant qu'aucune activité n'est sélectionnée (état initial, ou choix explicite de « Aucune »), `selectedActivity`/`recommendations` valent `null` dans `WeatherDetailLoaded` et aucun badge n'est affiché — le `WeatherDetailBloc` ne calcule une recommandation que si une activité est effectivement choisie. Le `WeatherDetailBloc` reçoit le use case `RecommendActivity` par injection et recalcule à chaque chargement ou changement d'activité — les widgets ne font jamais eux-mêmes appel au domaine, ils affichent l'état déjà calculé. Les badges Recommandée/Possible/Déconseillée utilisent des couleurs sémantiques fixes (vert/orange/rouge, cf. `RecommendationBadge`), seule exception au principe « aucune couleur codée en dur » car il n'existe pas de rôle succès/avertissement dans un `ColorScheme` Material standard.
 
 Gestion des erreurs : les datasources lèvent des exceptions typées (`ServerException`, `NetworkException`, `CacheException`), que les repositories catchent et traduisent en `Failure` (`ServerFailure`, `NetworkFailure`, `CacheFailure`) consommées par les BLoC — pas d'exception brute qui remonte jusqu'à l'UI.
 
@@ -156,8 +156,10 @@ Seuils retenus (Bon / Acceptable, au-delà = Mauvais) :
 | Balade | 10–28 °C | 0–35 °C | ≤ 20 % | ≤ 60 % | ≤ 30 km/h | ≤ 50 km/h |
 | Course | 5–22 °C | -5–30 °C | ≤ 20 % | ≤ 60 % | ≤ 25 km/h | ≤ 45 km/h |
 | Pique-nique | 15–28 °C | 10–33 °C | ≤ 10 % | ≤ 50 % | ≤ 20 km/h | ≤ 35 km/h |
+| Golf | 12–26 °C | 2–32 °C | ≤ 15 % | ≤ 50 % | ≤ 20 km/h | ≤ 35 km/h |
+| Tennis | 15–27 °C | 5–32 °C | ≤ 10 % | ≤ 35 % | ≤ 15 km/h | ≤ 30 km/h |
 
-Rationale : la balade tolère un large éventail de conditions (activité mobile, peu sensible à la pluie légère) ; la course est plus sensible aux températures extrêmes (effort physique) ; le pique-nique, activité statique en extérieur, est le plus exigeant sur la pluie et le vent (confort d'installation) tout en préférant des températures chaudes mais non caniculaires. Ces seuils sont un choix assumé et documenté plutôt qu'un modèle météo scientifique — conformément à l'objectif du test.
+Rationale : la balade tolère un large éventail de conditions (activité mobile, peu sensible à la pluie légère) ; la course est plus sensible aux températures extrêmes (effort physique) ; le pique-nique, activité statique en extérieur, est le plus exigeant sur la pluie et le vent (confort d'installation) tout en préférant des températures chaudes mais non caniculaires ; le golf tolère une pluie modérée mais est sensible au vent fort (trajectoire de balle) ; le tennis est l'activité la plus exigeante sur le vent et la pluie (balle rapide, terrain praticable), avec les tolérances les plus basses des cinq activités. Ces seuils sont un choix assumé et documenté plutôt qu'un modèle météo scientifique — conformément à l'objectif du test.
 
 ## Tests
 
@@ -170,9 +172,9 @@ sensibles (traduction d'erreurs, synchronisation d'état partagé) :
 
 | Fichier | Couvre | Type |
 |---|---|---|
-| `test/domain/usecases/recommend_activity_test.dart` | Règles de recommandation météo (3 activités, cas limites/bornes) | **Unitaire (obligatoire)** |
+| `test/domain/usecases/recommend_activity_test.dart` | Règles de recommandation météo (5 activités, cas limites/bornes) | **Unitaire (obligatoire)** |
 | `test/data/datasources/city_remote_data_source_test.dart` | Parsing JSON geocoding, succès/vide/erreur serveur/erreur réseau, via `http.testing.MockClient` (aucun appel réseau réel) | **Datasource, réseau simulé (obligatoire)** |
-| `test/presentation/screens/weather_detail/weather_detail_screen_test.dart` | Écran détail météo : chargement → résultats, changement d'activité, erreur + retry, bouton favori | **Widget test (obligatoire)** |
+| `test/presentation/screens/weather_detail/weather_detail_screen_test.dart` | Écran détail météo : chargement → résultats, aucun badge sans activité sélectionnée, choix/changement d'activité via le bottom sheet, choix « Aucune » retire les badges, erreur + retry, bouton favori | **Widget test (obligatoire)** |
 | `test/data/repositories/city_repository_impl_test.dart` | Traduction `ServerException`/`NetworkException` → `Failure` | Unitaire (mocktail) |
 | `test/presentation/bloc/city_search/city_search_bloc_test.dart` | Séquences d'états du `CitySearchBloc` (succès, vide, erreur, requête vide) | `bloc_test` (mocktail) |
 | `test/data/datasources/favorites_local_data_source_test.dart` | Ajout/retrait de favoris et **persistance réelle après fermeture/réouverture de Hive** | Datasource locale (Hive réel, répertoire temporaire) |

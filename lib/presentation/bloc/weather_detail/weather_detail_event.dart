@@ -14,7 +14,7 @@ class WeatherDetailStarted extends WeatherDetailEvent {
   const WeatherDetailStarted(this.city, this.activity);
 
   final City city;
-  final Activity activity;
+  final Activity? activity;
 
   @override
   List<Object?> get props => [city, activity];
@@ -23,7 +23,7 @@ class WeatherDetailStarted extends WeatherDetailEvent {
 class WeatherDetailActivityChanged extends WeatherDetailEvent {
   const WeatherDetailActivityChanged(this.activity);
 
-  final Activity activity;
+  final Activity? activity;
 
   @override
   List<Object?> get props => [activity];

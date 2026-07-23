@@ -10,11 +10,14 @@ class DailyForecastTile extends StatelessWidget {
   const DailyForecastTile({
     super.key,
     required this.forecast,
-    required this.recommendation,
+    this.recommendation,
   });
 
   final DailyForecast forecast;
-  final RecommendationLevel recommendation;
+
+  /// `null` si aucune activité n'est sélectionnée : dans ce cas, aucun badge
+  /// n'est affiché.
+  final RecommendationLevel? recommendation;
 
   @override
   Widget build(BuildContext context) {
@@ -72,11 +75,13 @@ class DailyForecastTile extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: RecommendationBadge(level: recommendation),
-            ),
+            if (recommendation != null) ...[
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: RecommendationBadge(level: recommendation!),
+              ),
+            ],
           ],
         ),
       ),

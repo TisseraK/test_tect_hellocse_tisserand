@@ -7,13 +7,8 @@ import 'package:test_tect_hellocse_tisserand/data/models/city_model.dart';
 
 const _boxName = 'recent_searches_box';
 
-CityModel _city(int id, String name) => CityModel(
-  id: id,
-  name: name,
-  country: 'France',
-  latitude: 0,
-  longitude: 0,
-);
+CityModel _city(int id, String name) =>
+    CityModel(id: id, name: name, country: 'France', latitude: 0, longitude: 0);
 
 void main() {
   late Directory tempDir;
@@ -39,17 +34,20 @@ void main() {
     expect(result.map((c) => c.name), ['Lyon', 'Paris']);
   });
 
-  test('une ville déjà présente est déplacée en tête plutôt que dupliquée', () async {
-    final box = await Hive.openBox<List>(_boxName);
-    final dataSource = RecentSearchesLocalDataSourceImpl(box);
+  test(
+    'une ville déjà présente est déplacée en tête plutôt que dupliquée',
+    () async {
+      final box = await Hive.openBox<List>(_boxName);
+      final dataSource = RecentSearchesLocalDataSourceImpl(box);
 
-    await dataSource.addRecentSearch(_city(1, 'Paris'));
-    await dataSource.addRecentSearch(_city(2, 'Lyon'));
-    await dataSource.addRecentSearch(_city(1, 'Paris'));
+      await dataSource.addRecentSearch(_city(1, 'Paris'));
+      await dataSource.addRecentSearch(_city(2, 'Lyon'));
+      await dataSource.addRecentSearch(_city(1, 'Paris'));
 
-    final result = dataSource.getRecentSearches();
-    expect(result.map((c) => c.name), ['Paris', 'Lyon']);
-  });
+      final result = dataSource.getRecentSearches();
+      expect(result.map((c) => c.name), ['Paris', 'Lyon']);
+    },
+  );
 
   test('la liste est plafonnée à maxEntries', () async {
     final box = await Hive.openBox<List>(_boxName);

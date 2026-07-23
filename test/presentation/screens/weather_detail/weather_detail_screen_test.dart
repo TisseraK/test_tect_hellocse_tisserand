@@ -20,6 +20,8 @@ const _paris = City(
   longitude: 2.3488,
 );
 
+const _recommendationLabels = ['Recommandée', 'Possible', 'Déconseillée'];
+
 class _FakeWeatherRepository implements WeatherRepository {
   _FakeWeatherRepository({this.shouldFail = false});
 
@@ -92,23 +94,42 @@ Widget _wrap({
   );
 }
 
+Finder _recommendationBadges() => find.byWidgetPredicate(
+  (w) => w is Text && _recommendationLabels.contains(w.data),
+);
+
 void main() {
-  testWidgets('affiche le chargement puis les prévisions avec badge', (
+  testWidgets(
+    'aucune recommandation tant qu\'aucune activité n\'est sélectionnée',
+    (tester) async {
+      await tester.pumpWidget(
+        _wrap(weatherRepository: _FakeWeatherRepository()),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Paris'), findsOneWidget);
+      expect(find.text('Ciel clair'), findsOneWidget);
+      expect(_recommendationBadges(), findsNothing);
+      expect(find.text('Choisir une activité'), findsOneWidget);
+    },
+  );
+
+  testWidgets('choisir une activité dans le bottom sheet affiche les badges', (
     tester,
   ) async {
     await tester.pumpWidget(_wrap(weatherRepository: _FakeWeatherRepository()));
-
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
-
     await tester.pumpAndSettle();
 
-    expect(find.text('Paris'), findsOneWidget);
-    expect(find.text('Ciel clair'), findsOneWidget);
-    expect(find.text('Couvert'), findsOneWidget);
-    // Balade (activité par défaut) : le 2e jour a un vent à 40 km/h,
-    // acceptable pour la Balade -> Possible, aucun jour Déconseillée.
+    await tester.tap(find.text('Choisir une activité'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Balade'));
+    await tester.pumpAndSettle();
+
+    // Balade : vent à 40 km/h du 2e jour reste acceptable -> Possible.
     expect(find.text('Possible'), findsOneWidget);
     expect(find.text('Déconseillée'), findsNothing);
+    // Le bouton affiche désormais l'activité choisie.
+    expect(find.widgetWithText(FilledButton, 'Balade'), findsOneWidget);
   });
 
   testWidgets('changer d\'activité recalcule les recommandations affichées', (
@@ -117,12 +138,40 @@ void main() {
     await tester.pumpWidget(_wrap(weatherRepository: _FakeWeatherRepository()));
     await tester.pumpAndSettle();
 
+    await tester.tap(find.text('Choisir une activité'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Balade'));
+    await tester.pumpAndSettle();
+    expect(find.text('Possible'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(FilledButton, 'Balade'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Pique-nique'));
     await tester.pumpAndSettle();
 
-    // En Pique-nique, le vent à 40 km/h du 2e jour dépasse le seuil
-    // acceptable (35 km/h) -> Déconseillée.
+    // Pique-nique : vent à 40 km/h dépasse le seuil acceptable -> Déconseillée.
     expect(find.text('Déconseillée'), findsOneWidget);
+  });
+
+  testWidgets('choisir "Aucune" retire les badges de recommandation', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_wrap(weatherRepository: _FakeWeatherRepository()));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Choisir une activité'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Golf'));
+    await tester.pumpAndSettle();
+    expect(_recommendationBadges(), findsWidgets);
+
+    await tester.tap(find.widgetWithText(FilledButton, 'Golf'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Aucune'));
+    await tester.pumpAndSettle();
+
+    expect(_recommendationBadges(), findsNothing);
+    expect(find.text('Choisir une activité'), findsOneWidget);
   });
 
   testWidgets('affiche une erreur avec un bouton Réessayer fonctionnel', (

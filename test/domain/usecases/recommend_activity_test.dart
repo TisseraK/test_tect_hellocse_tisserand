@@ -155,4 +155,83 @@ void main() {
       );
     });
   });
+
+  group('Golf', () {
+    test('conditions idéales -> Recommandée', () {
+      final forecast = _forecast(
+        temperatureMin: 17,
+        temperatureMax: 21,
+        precipitationProbability: 5,
+        windSpeedMax: 10,
+      );
+      expect(
+        recommend(forecast, Activity.golf),
+        RecommendationLevel.recommended,
+      );
+    });
+
+    test('vent fort -> Déconseillée (trajectoire de balle)', () {
+      final forecast = _forecast(
+        temperatureMin: 17,
+        temperatureMax: 21,
+        precipitationProbability: 5,
+        windSpeedMax: 40, // > 35, mauvais
+      );
+      expect(
+        recommend(forecast, Activity.golf),
+        RecommendationLevel.notRecommended,
+      );
+    });
+
+    test('pluie modérée seule -> Possible', () {
+      final forecast = _forecast(
+        temperatureMin: 17,
+        temperatureMax: 21,
+        precipitationProbability: 30, // acceptable (15 < x <= 50)
+        windSpeedMax: 10,
+      );
+      expect(recommend(forecast, Activity.golf), RecommendationLevel.possible);
+    });
+  });
+
+  group('Tennis', () {
+    test('conditions idéales -> Recommandée', () {
+      final forecast = _forecast(
+        temperatureMin: 18,
+        temperatureMax: 22,
+        precipitationProbability: 5,
+        windSpeedMax: 10,
+      );
+      expect(
+        recommend(forecast, Activity.tennis),
+        RecommendationLevel.recommended,
+      );
+    });
+
+    test('pluie -> Déconseillée (activité la plus sensible au vent/pluie)', () {
+      final forecast = _forecast(
+        temperatureMin: 18,
+        temperatureMax: 22,
+        precipitationProbability: 50, // > 35, mauvais
+        windSpeedMax: 10,
+      );
+      expect(
+        recommend(forecast, Activity.tennis),
+        RecommendationLevel.notRecommended,
+      );
+    });
+
+    test('vent modéré seul -> Possible', () {
+      final forecast = _forecast(
+        temperatureMin: 18,
+        temperatureMax: 22,
+        precipitationProbability: 5,
+        windSpeedMax: 25, // acceptable (15 < x <= 30)
+      );
+      expect(
+        recommend(forecast, Activity.tennis),
+        RecommendationLevel.possible,
+      );
+    });
+  });
 }

@@ -23,12 +23,14 @@ class WeatherDetailLoaded extends WeatherDetailState {
   });
 
   final List<DailyForecast> forecasts;
-  final Activity selectedActivity;
+  final Activity? selectedActivity;
 
   /// Recommandation du jour à l'index correspondant de [forecasts], pour
-  /// [selectedActivity]. Calculée par le BLoC via le use case du domaine —
-  /// les widgets n'appellent jamais `RecommendActivity` eux-mêmes.
-  final List<RecommendationLevel> recommendations;
+  /// [selectedActivity]. `null` si aucune activité n'est sélectionnée : dans
+  /// ce cas l'UI n'affiche aucun badge de recommandation. Calculée par le
+  /// BLoC via le use case du domaine — les widgets n'appellent jamais
+  /// `RecommendActivity` eux-mêmes.
+  final List<RecommendationLevel>? recommendations;
 
   @override
   List<Object?> get props => [forecasts, selectedActivity, recommendations];

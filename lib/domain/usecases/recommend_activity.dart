@@ -91,6 +91,26 @@ class RecommendActivity {
       goodMaxWindSpeed: 20,
       acceptableMaxWindSpeed: 35,
     ),
+    Activity.golf: _ActivityThresholds(
+      goodTemperatureMin: 12,
+      goodTemperatureMax: 26,
+      acceptableTemperatureMin: 2,
+      acceptableTemperatureMax: 32,
+      goodMaxPrecipitationProbability: 15,
+      acceptableMaxPrecipitationProbability: 50,
+      goodMaxWindSpeed: 20,
+      acceptableMaxWindSpeed: 35,
+    ),
+    Activity.tennis: _ActivityThresholds(
+      goodTemperatureMin: 15,
+      goodTemperatureMax: 27,
+      acceptableTemperatureMin: 5,
+      acceptableTemperatureMax: 32,
+      goodMaxPrecipitationProbability: 10,
+      acceptableMaxPrecipitationProbability: 35,
+      goodMaxWindSpeed: 15,
+      acceptableMaxWindSpeed: 30,
+    ),
   };
 }
 
